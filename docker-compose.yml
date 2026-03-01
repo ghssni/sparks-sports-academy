@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  # PostgreSQL Data Warehouse
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: $(DB_NAME)
+      POSTGRES_USER: $(DB_USER)
+      POSTGRES_PASSWORD: $(DB_PASS)
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Message Ingestion & Processing Service
+  ingestion:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: $(DB_HOST)
+      DB_PORT: $(DB_PORT)
+      DB_NAME: $(DB_NAME)
+      DB_USER: $(DB_USER)
+      DB_PASS: $(DB_PASS)
+      QISCUS_APP_ID: ${QISCUS_APP_ID}
+      QISCUS_SECRET_KEY: ${QISCUS_SECRET_KEY}
+      QISCUS_BASE_URL: https://multichannel.qiscus.com
+      GOOGLE_SHEETS_CRED_PATH: /app/credentials/gsheet_sa.json
+      KEYWORD_SHEET_ID: ${KEYWORD_SHEET_ID}
+    volumes:
+      - ./credentials:/app/credentials:ro
+    depends_on:
+      - postgres
+
+  # Apache Superset for BI
+  superset:
+    image: apache/superset:3.1.0
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: $(SPARKS_SECRET_KEY)
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

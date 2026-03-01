@@ -1,0 +1,58 @@
+graph TB
+    subgraph Sources["Data Sources"]
+        WA["WhatsApp"]
+        IG["Instagram"]
+        FB["Facebook"]
+        WEB["Website Live Chat"]
+        LINE["LINE"]
+    end
+
+    subgraph Qiscus["Qiscus Omnichannel Platform"]
+        QC["Qiscus CRM Dashboard"]
+        WH1["Webhook: New Session"]
+        WH2["Webhook: Post Message"]
+        WH3["Webhook: Mark as Resolved"]
+        API1["API: GET /api/v2/customer_rooms"]
+        API2["API: GET /api/v1/export/rooms"]
+        API3["API: POST /api/v2/customer_rooms/{room_id}/messages"]
+    end
+
+    subgraph Ingestion["Ingestion Layer"]
+        WHR["Webhook Receiver<br/>(FastAPI)"]
+        MQ["Message Queue<br/>(Redis / RabbitMQ)"]
+        BATCH["Batch Poller<br/>(Scheduled every 15 min)"]
+    end
+
+    subgraph Processing["Processing Layer"]
+        KW["Keyword Matcher<br/>(Opening Message vs Spreadsheet)"]
+        FP["Funnel Processor<br/>(Lead → Booking → Transaction)"]
+        ENR["Data Enricher<br/>(Channel, Phone, Agent)"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        RAW["Raw Layer<br/>(raw_messages, raw_rooms)"]
+        STG["Staging Layer<br/>(stg_rooms_enriched, stg_messages_classified)"]
+        GOLD["Gold Layer<br/>(funnel_leads, funnel_bookings, funnel_transactions)"]
+    end
+
+    subgraph Output["Output & Analytics"]
+        GS["Google Sheets<br/>(Keyword Management)"]
+        SUP["Apache Superset<br/>(BI Dashboard)"]
+        RPT["Growth Team Reports"]
+    end
+
+    Sources --> QC
+    QC --> WH1 & WH2 & WH3
+    WH1 & WH2 & WH3 --> WHR
+    WHR --> MQ
+    MQ --> RAW
+    API1 & API2 --> BATCH
+    BATCH --> RAW
+    RAW --> KW
+    GS --> KW
+    KW --> FP
+    FP --> ENR
+    ENR --> STG
+    STG --> GOLD
+    GOLD --> SUP
+    GOLD --> RPT
